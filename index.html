@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<script type="text/javascript">
+function $( id ) {
+	return document.getElementById( id );
+}
+
+var context = null;
+
+var t0 = null;
+
+var x = null, y = null, vx = null, vy = null;
+
+function draw( context ) {
+	context.clearRect( 0, 0, 600, 600 );
+	context.beginPath();
+	context.arc( x - 8, y - 8, 16, 0, 2 * Math.PI );
+	context.stroke();
+}
+
+function update( t ) {
+	var dt = t - t0;
+	t0 = t;
+
+	vy += 6 * dt;
+
+	x += vx * dt / 1000;
+	y += vy * dt / 1000;
+
+	if( x < 0 ) {
+		x = -x;
+		vx = -vx;
+	}
+
+	if( x > 599 ) {
+		x = 1198 - x;
+		vx = -vx;
+	}
+
+	if( y < 0 ) {
+		y = -y;
+		vy = -vy;
+	}
+
+	if( y > 599 ) {
+		y = 1198 - y;
+		vy = -vy;
+	}
+		
+
+	draw( context );
+
+	window.webkitRequestAnimationFrame( update );
+}
+
+function init( t ) {
+	t0 = t;
+
+	vx = 128;
+	vy = 0;
+
+	draw( context );
+
+	window.webkitRequestAnimationFrame( update );
+}
+
+window.onload = function( event ) {
+	context = $('world').getContext( '2d' );
+
+	var wref = 'ws://' + window.location.host + '/';
+
+	var ws = new WebSocket( wref );
+
+	ws.onopen = function( event ) {
+		$('status').innerHTML = 'connection opened';
+	};
+
+	ws.onmessage = function( event ) {
+		var message = JSON.parse( event.data );
+
+		x = message.x;
+		y = message.y;
+
+		window.webkitRequestAnimationFrame( init );		
+	};
+
+	ws.onclose = function( event ) {
+		$('status').innerHTML = 'connection closed';
+	};
+
+	ws.onerror = function( event ) {
+		console.log( event );
+		$('status').innerHTML = 'error; check console';
+	};
+}
+</script>
+</head>
+
+<body>
+<canvas width="600" height="600" id="world"></canvas>
+<br/>
+<span id="status"></span>
+</body>
+
+</html>
