@@ -2,9 +2,15 @@ var http = require('http');
 var ws = require('ws');
 var fs = require('fs');
 
+var Simulation = require('simulation').Simulation;
+
 var hs = new http.Server();
 
 var wss = new ws.Server({ server: hs });
+
+var simulation = new Simulation();
+
+simulation.start();
 
 hs.listen( 9222, function() {
 	console.log( 'listening on 9222' );
@@ -24,6 +30,4 @@ hs.on( 'request', function( request, response ) {
 	});
 });
 
-wss.on( 'connection', function( socket ) {
-	socket.send( JSON.stringify({ x: 300, y: 300 }) );
-});
+wss.on( 'connection', simulation.client_onConnection );
