@@ -24,62 +24,85 @@ vx = null;
 vy = null;
 va = null;
 
-function init( t ) {
-	t0 = t;
+ax = null;
+ay = null;
+aa = null;
 
-	e = [];
-
-	window.onkeydown = function( event ) {
-		e.push( event );
-	};
-
-	n = 2;
-
-	x = [ 180, 200 ];
-	y = [ 180, 200 ];
-	a = [ 0, 0 ];
-
-	vx = [ 0.1, 0 ];
-	vy = [ 0.1, 0 ];
-	va = [ 0, 0 ];
-
-	context.beginPath();
-
-	for( var i = 0; i < n; ++i ) {
-		context.translate( x[i], y[i] );
-		context.rotate( a[i] );
-
-		context.moveTo( 12, 0 );
-		context.lineTo( -8, -8 );
-		context.lineTo( -8, 8 );
-		context.lineTo( 12, 0 );
-
-		context.rotate( -a[i] );
-		context.translate( -x[i], -y[i] );
-	}
-
-	context.stroke();
-
-	webkitRequestAnimationFrame( update, canvas );
+function Simulation() {
+	this.objects = [];
+	this.events = [];
 }
 
-function update( t ) {
-	var dt = ( t - t0 ) / 1000;
+Simulation.prototype.pass = function( t ) {
+	var dt = ( t - this.t0 ) / 1000;
+
+	for( var i = 0; i < this.objects.length; ++i ) {
+		var o = this.objects[i];
+
+		o[0] += o[3] * dt + o[6] * dt * dt;
+		o[1] += o[4] * dt + o[7] * dt * dt;
+		o[2] += o[5] * dt + o[8] * dt * dt;
+
+		o[3] += o[6] * dt;
+		o[4] += o[7] * dt;
+		o[5] += o[8] * dt;
+	}
+
+	this.t0 = t;
+}
+
+Simulation.prototype.init = function( t ) {
+	this.t0 = t;
+}
+
+
+Simulation.prototype.update = function( t ) {
+	while( this.events.length > 0 ) {
+		var event = this.events.shift();
+
+		this.pass( event.timeStamp );
+		// apply event
+	}
+
+	this.pass( t );
+}
+
+function simulate( t ) {
+	var dt = ( t - t0 ) / 1000, ct = 0;
 	t0 = t;
 
-	while( e.length > 0 ) {
-		var event = e.shift();
-		
-		vx[0] *= 1.1;
-		vy[0] *= 1.1;
+	// the application of a force serves to apply an acceleration
+
+	var d1 = Infinity; // delay to soonest collision
+	var d2 = ( event = e.shift() && ( ( event.timeStamp - t0 ) / 1000 - ct ) ) || Infinity;
+
+	var d = Math.min( d1, d2 ); // time until next event of interest
+
+	while( d < dt ) {
+		pass( d );
+		dt -= d;
+		ct += d;
+
+		if( d1 < d2 ) {
+			// deal with collision
+		}
+		else if( d2 < d1 ) {
+			// handle event; apply force
+		}
+		else {
+			// simultaneous events
+		}
+
+		d1 = Infinity; // delay to soonest collision
+		d2 = ( event = e.shift() && ( ( event.timeStamp - t0 ) / 1000 - ct ) ) || Infinity;
+
+		d = Math.min( d1, d2 ); // time until next event of interest
 	}
 
-	for( var i = 0; i < n; ++i ) {
-		x[i] += vx[i] * dt;
-		y[i] += vy[i] * dt;
-		a[i] += va[i] * dt;
-	}
+	pass( dt );
+}
 
+function paint( context ) {
 	context.clearRect( 0, 0, 360, 360 );
 
 	context.beginPath();
@@ -98,6 +121,39 @@ function update( t ) {
 	}
 
 	context.stroke();
+}
+
+function init( t ) {
+	t0 = t;
+
+	e = [];
+
+	window.onkeydown = function( event ) {
+		e.push( event );
+	};
+
+	n = 2;
+
+	x = [ 180, 200 ];
+	y = [ 180, 200 ];
+	a = [ 0, 0 ];
+
+	vx = [ 0.5, 0 ];
+	vy = [ 0.5, 0 ];
+	va = [ 0, 0 ];
+
+	ax = [ 0, 0 ];
+	ay = [ 0, 0 ];
+	aa = [ 0, 0 ];
+
+	paint( context );
+
+	webkitRequestAnimationFrame( update, canvas );
+}
+
+function update( t ) {
+	simulate( t );
+	paint( context );
 
 	webkitRequestAnimationFrame( update, canvas );
 }
