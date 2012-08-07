@@ -10,27 +10,21 @@ function $( id ) {
 canvas = null;
 context = null;
 
-t0 = null;
-
-e = null;
-
-n = null;
-
-x = null;
-y = null;
-a = null;
-
-vx = null;
-vy = null;
-va = null;
-
-ax = null;
-ay = null;
-aa = null;
+simulation = null;
 
 function Simulation() {
 	this.objects = [];
 	this.events = [];
+
+	var self = this;
+
+	this.pushEvent = function( event ) {
+		self.events.push( event );
+	};
+}
+
+Simulation.prototype.add = function( x, y, a, vx, vy, va, ax, ay, aa ) {
+	this.objects.push([ x, y, a, vx, vy, va, ax, ay, aa ]);
 }
 
 Simulation.prototype.pass = function( t ) {
@@ -67,93 +61,46 @@ Simulation.prototype.update = function( t ) {
 	this.pass( t );
 }
 
-function simulate( t ) {
-	var dt = ( t - t0 ) / 1000, ct = 0;
-	t0 = t;
-
-	// the application of a force serves to apply an acceleration
-
-	var d1 = Infinity; // delay to soonest collision
-	var d2 = ( event = e.shift() && ( ( event.timeStamp - t0 ) / 1000 - ct ) ) || Infinity;
-
-	var d = Math.min( d1, d2 ); // time until next event of interest
-
-	while( d < dt ) {
-		pass( d );
-		dt -= d;
-		ct += d;
-
-		if( d1 < d2 ) {
-			// deal with collision
-		}
-		else if( d2 < d1 ) {
-			// handle event; apply force
-		}
-		else {
-			// simultaneous events
-		}
-
-		d1 = Infinity; // delay to soonest collision
-		d2 = ( event = e.shift() && ( ( event.timeStamp - t0 ) / 1000 - ct ) ) || Infinity;
-
-		d = Math.min( d1, d2 ); // time until next event of interest
-	}
-
-	pass( dt );
-}
-
-function paint( context ) {
+Simulation.prototype.paint = function( context ) {
 	context.clearRect( 0, 0, 360, 360 );
 
 	context.beginPath();
 
-	for( var i = 0; i < n; ++i ) {
-		context.translate( ( x[i] + 0.5 ) | 0, ( y[i] + 0.5 ) | 0 );
-		context.rotate( ( a[i] + 0.5 ) | 0 );
+	for( var i = 0; i < this.objects.length; ++i ) {
+		var o = this.objects[i];
+
+		context.translate( ( o[0] + 0.5 ) | 0, ( o[1] + 0.5 ) | 0 );
+		context.rotate( ( o[2] + 0.5 ) | 0 );
 
 		context.moveTo( 12, 0 );
 		context.lineTo( -8, -8 );
 		context.lineTo( -8, 8 );
 		context.lineTo( 12, 0 );
 
-		context.rotate( -( a[i] + 0.5 ) | 0 );
-		context.translate( -( x[i] + 0.5 ) | 0, -( y[i] + 0.5 ) | 0 );
+		context.rotate( -( o[2] + 0.5 ) | 0 );
+		context.translate( -( o[0] + 0.5 ) | 0, -( o[1] + 0.5 ) | 0 );
 	}
 
 	context.stroke();
 }
 
 function init( t ) {
-	t0 = t;
+	simulation = new Simulation();
 
-	e = [];
+	window.onkeydown = simulation.pushEvent;
+	window.onkeyup = simulation.pushEvent;
 
-	window.onkeydown = function( event ) {
-		e.push( event );
-	};
+	simulation.add( 180, 180, 0, 0, 0, 0, 0, 0, 0 );
 
-	n = 2;
-
-	x = [ 180, 200 ];
-	y = [ 180, 200 ];
-	a = [ 0, 0 ];
-
-	vx = [ 0.5, 0 ];
-	vy = [ 0.5, 0 ];
-	va = [ 0, 0 ];
-
-	ax = [ 0, 0 ];
-	ay = [ 0, 0 ];
-	aa = [ 0, 0 ];
-
-	paint( context );
+	simulation.init( t );
+	simulation.paint( context );
 
 	webkitRequestAnimationFrame( update, canvas );
 }
 
 function update( t ) {
-	simulate( t );
-	paint( context );
+	simulation.update( t );
+	simulation.paint( context );
 
 	webkitRequestAnimationFrame( update, canvas );
 }
