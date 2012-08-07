@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<script type="text/javascript">
+function $( id ) {
+	return document.getElementById( id );
+}
+
+function discreteUniform( a, b ) { // [a,b)
+	return a + Math.floor( Math.random() * b );
+}
+
+function Point( x, y ) {
+	this.x = x;
+	this.y = y;
+}
+
+Point.prototype.paint = function( context ) {
+	context.moveTo( this.x, this.y );
+	context.arc( this.x - 2, this.y - 2, 4, 0, 2 * Math.PI, true );
+}
+
+Point.random = function( ix, iy, ax, ay ) {
+	return new Point( ix + Math.random() * ( ax - ix ), iy + Math.random() * ( ay - iy ) );
+}
+
+function Wall( initial, terminal ) {
+	this.initial = initial;
+	this.terminal = terminal;
+}
+
+
+Wall.prototype.paint = function( context ) {
+	context.moveTo( this.initial.x, this.initial.y );
+	context.lineTo( this.terminal.x, this.terminal.y );
+}
+
+Wall.prototype.update = function( time ) {
+	var sin = Math.sin( time / 1000 ), cos = Math.cos( time / 1000 );
+	
+	this.initial.x += sin;
+	this.initial.y += cos;
+	this.terminal.x += sin;
+	this.terminal.y += cos;
+}
+
+Wall.prototype.nearestConvexCombinationCoefficientTo = function( point ) {
+	var dx = this.terminal.x - this.initial.x, dy = this.terminal.y - this.initial.y, denom = dx * dx + dy * dy;
+
+	if( denom > 0 ) {
+		return ( dx * ( point.x - this.initial.x ) + dy * ( point.y - this.initial.y ) ) / denom;
+	}
+	else {
+		return 0;
+	}
+}
+
+Wall.prototype.nearestPointTo = function( point ) {
+	var t = Math.max( 0, Math.min( this.nearestConvexCombinationCoefficientTo( point ), 1 ) );
+
+	return new Point( this.initial.x + t * ( this.terminal.x - this.initial.x ), this.initial.y + t * ( this.terminal.y - this.initial.y ) );
+}
+
+Wall.prototype.convexCombinationCoefficientAtIntersection = function( origin, theta ) {
+	return ( theta.x * ( origin.y - this.initial.y ) - theta.y * ( origin.x - this.initial.x ) ) / ( theta.x * ( this.terminal.x - this.initial.x ) - theta.y * ( this.terminal.y - this.initial.y ) );
+}
+
+Wall.prototype.isIntersectedBy = function( origin, theta ) {
+	var t = this.convexCombinationCoefficientAtIntersection( origin, theta );
+	
+	return ( 0 <= t && t <= 1 );
+}
+
+/*
+
+if( wall.isIntersectedBy( location, angle ) ) {
+	wall.distanceToIntersection( location, angle );
+}
+
+this nesting is necessary for the correct use of these functions.
+the predicate is a precondition for the function.
+if both functions could be combined, there would be speedup.
+
+*/
+
+// world.getVisibleRegionAtPoint = function( point ) { // returns region
+
+
+var p = [];
+
+var n = discreteUniform( 25, 75 );
+
+for( var i = 0; i < n; ++i ) {
+	p.push( Point.random( -160, -160, 160, 160 ) );
+}
+
+var n = discreteUniform( 12, 20 );
+
+var w = [];
+
+for( var i = 0; i < n; ++i ) {
+	w.push( new Wall( p[ discreteUniform( 0, p.length ) ], p[ discreteUniform( 0, p.length ) ] ) );
+}
+
+
+window.onload = function( event ) {
+	var context = $('world').getContext( '2d' );
+
+	console.log( context );
+
+	context.translate( 160, 160 );
+	
+	
+	var origin = new Point( 0, 0 );
+
+	var animate = function( time ) {
+		context.clearRect( -160, -160, 320, 320 );
+	
+		context.strokeStyle = 'black';
+		context.beginPath();
+	
+		for( var i = 0; i < w.length; ++i ) {
+			w[i].update( time );
+			w[i].paint( context );
+		}
+	
+		context.stroke();
+
+		context.strokeStyle = 'red';
+		context.beginPath();
+	
+		for( var i = 0; i < w.length; ++i ) {
+			var point = w[i].nearestPointTo( origin );
+	
+			context.moveTo( origin.x, origin.y );
+			context.lineTo( point.x, point.y );
+		}
+	
+		context.stroke();
+		
+		window.webkitRequestAnimationFrame( animate );
+	}
+	
+	window.webkitRequestAnimationFrame( animate );
+		
+
+	
+}
+</script>
+</head>
+
+<body>
+	<canvas id="world" width="320" height="320"/>
+</body>
+
+</html>

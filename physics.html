@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<script type="text/javascript">
+function $( id ) {
+	return document.getElementById( id );
+}
+
+canvas = null;
+context = null;
+
+t0 = null;
+
+e = null;
+
+n = null;
+
+x = null;
+y = null;
+a = null;
+
+vx = null;
+vy = null;
+va = null;
+
+function init( t ) {
+	t0 = t;
+
+	e = [];
+
+	window.onkeydown = function( event ) {
+		e.push( event );
+	};
+
+	n = 2;
+
+	x = [ 180, 200 ];
+	y = [ 180, 200 ];
+	a = [ 0, 0 ];
+
+	vx = [ 0.1, 0 ];
+	vy = [ 0.1, 0 ];
+	va = [ 0, 0 ];
+
+	context.beginPath();
+
+	for( var i = 0; i < n; ++i ) {
+		context.translate( x[i], y[i] );
+		context.rotate( a[i] );
+
+		context.moveTo( 12, 0 );
+		context.lineTo( -8, -8 );
+		context.lineTo( -8, 8 );
+		context.lineTo( 12, 0 );
+
+		context.rotate( -a[i] );
+		context.translate( -x[i], -y[i] );
+	}
+
+	context.stroke();
+
+	webkitRequestAnimationFrame( update, canvas );
+}
+
+function update( t ) {
+	var dt = ( t - t0 ) / 1000;
+	t0 = t;
+
+	while( e.length > 0 ) {
+		var event = e.shift();
+		
+		vx[0] *= 1.1;
+		vy[0] *= 1.1;
+	}
+
+	for( var i = 0; i < n; ++i ) {
+		x[i] += vx[i] * dt;
+		y[i] += vy[i] * dt;
+		a[i] += va[i] * dt;
+	}
+
+	context.clearRect( 0, 0, 360, 360 );
+
+	context.beginPath();
+
+	for( var i = 0; i < n; ++i ) {
+		context.translate( ( x[i] + 0.5 ) | 0, ( y[i] + 0.5 ) | 0 );
+		context.rotate( ( a[i] + 0.5 ) | 0 );
+
+		context.moveTo( 12, 0 );
+		context.lineTo( -8, -8 );
+		context.lineTo( -8, 8 );
+		context.lineTo( 12, 0 );
+
+		context.rotate( -( a[i] + 0.5 ) | 0 );
+		context.translate( -( x[i] + 0.5 ) | 0, -( y[i] + 0.5 ) | 0 );
+	}
+
+	context.stroke();
+
+	webkitRequestAnimationFrame( update, canvas );
+}
+
+window.onload = function( event ) {
+	canvas = $('canvas');
+	context = canvas.getContext('2d');
+
+	init( Date.now() );
+}
+</script>
+</head>
+
+<body>
+	<canvas id="canvas" width="360" height="360"/>
+</body>
+
+</html>
