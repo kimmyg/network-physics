@@ -12,19 +12,68 @@ context = null;
 
 simulation = null;
 
+function NetForce() {
+	this.forces = [];
+
+	this.x = 0;
+	this.y = 0;
+}
+
+NetForce.prototype.set = function( key, fx, fy ) {
+	var i = 0;
+
+	while( i < this.forces.length && this.forces[i] !== key ) {
+		i += 3;
+	}
+
+	if( i < this.forces.length ) {
+		this.x -= this.forces[i+1];
+		this.y -= this.forces[i+2];
+
+		this.forces[i+1] = fx;
+		this.forces[i+2] = fy;
+	}
+	else {
+		this.forces.push( key );
+		this.forces.push( fx );
+		this.forces.push( fy );
+	}
+
+	this.x += fx;
+	this.y += fy;
+}
+
+NetForce.prototype.delete = function( key ) {
+	var i = 0;
+
+	while( i < this.forces.length && this.forces[i] !== key ) {
+		i += 3;
+	}
+
+	if( i < this.forces.length ) {
+		this.x -= this.forces[i+1];
+		this.y -= this.forces[i+2];
+
+		this.forces.splice( i, 3 );
+	}
+}
+
 function Simulation() {
 	this.objects = [];
 	this.events = [];
+	this.keys = {};
 
 	var self = this;
 
 	this.pushEvent = function( event ) {
-		self.events.push( event );
+		if( event.keyCode === 39 || true ) { // should do generic event filter
+			self.events.push( event );
+		}
 	};
 }
 
 Simulation.prototype.add = function( x, y, a, vx, vy, va, ax, ay, aa ) {
-	this.objects.push([ x, y, a, vx, vy, va, ax, ay, aa ]);
+	this.objects.push([ x, y, a, vx, vy, va, new NetForce(), aa ]);
 }
 
 Simulation.prototype.pass = function( t ) {
@@ -33,16 +82,42 @@ Simulation.prototype.pass = function( t ) {
 	for( var i = 0; i < this.objects.length; ++i ) {
 		var o = this.objects[i];
 
-		o[0] += o[3] * dt + o[6] * dt * dt;
-		o[1] += o[4] * dt + o[7] * dt * dt;
-		o[2] += o[5] * dt + o[8] * dt * dt;
+		o[0] += o[3] * dt + o[6].x * dt * dt;
+		o[1] += o[4] * dt + o[6].y * dt * dt;
+		o[2] += o[5] * dt + o[7] * dt * dt;
 
-		o[3] += o[6] * dt;
-		o[4] += o[7] * dt;
-		o[5] += o[8] * dt;
+		o[3] += o[6].x * dt;
+		o[4] += o[6].y * dt;
+		o[5] += o[7] * dt;
 	}
 
 	this.t0 = t;
+}
+
+Simulation.prototype.onKeyDown = function( code ) {
+	console.log( 'down ' + code );
+
+	if( code === 38 ) { // up
+		var a = this.objects[0][2];
+
+		this.objects[0][5].set( 0, Math.cos( a ), Math.sin( a ) );
+	}
+	else if( code === 39 ) { // right
+
+	}
+	else if( code === 0 ) { // left
+
+	}
+	else if( code === 39 ) { // down
+
+	}
+}
+
+Simulation.prototype.onKeyUp = function( code ) {
+	console.log( 'up   ' + code );
+
+	this.objects[0][6] -= Math.cos( this.objects[0][2] );	
+	this.objects[0][7] -= Math.sin( this.objects[0][2] );	
 }
 
 Simulation.prototype.init = function( t ) {
@@ -55,7 +130,19 @@ Simulation.prototype.update = function( t ) {
 		var event = this.events.shift();
 
 		this.pass( event.timeStamp );
-		// apply event
+
+		if( event.type === 'keydown' ) {
+			if( ! this.keys[ event.keyCode ] ) {
+				this.keys[ event.keyCode ] = true;
+
+				this.onKeyDown( event.keyCode );
+			}
+		}
+		else if( event.type === 'keyup' ) {
+			delete this.keys[ event.keyCode ];
+
+			this.onKeyUp( event.keyCode );
+		}
 	}
 
 	this.pass( t );
@@ -69,16 +156,33 @@ Simulation.prototype.paint = function( context ) {
 	for( var i = 0; i < this.objects.length; ++i ) {
 		var o = this.objects[i];
 
-		context.translate( ( o[0] + 0.5 ) | 0, ( o[1] + 0.5 ) | 0 );
-		context.rotate( ( o[2] + 0.5 ) | 0 );
+		var x = ( o[0] + 0.5 ) | 0, y = ( o[1] + 0.5 ) | 0, a = ( ( ( o[2] * 16 / Math.PI + 0.5 ) | 0 ) % 32 ) * Math.PI / 16;
+
+		context.translate( x, y );
+		context.rotate( a );
 
 		context.moveTo( 12, 0 );
 		context.lineTo( -8, -8 );
 		context.lineTo( -8, 8 );
 		context.lineTo( 12, 0 );
 
-		context.rotate( -( o[2] + 0.5 ) | 0 );
-		context.translate( -( o[0] + 0.5 ) | 0, -( o[1] + 0.5 ) | 0 );
+		context.rotate( -a );
+		context.translate( -x, -y );
+
+		x = o[0];
+		y = o[1];
+		a = o[2];
+
+		context.translate( x, y );
+		context.rotate( a );
+
+		context.moveTo( 12, 0 );
+		context.lineTo( -8, -8 );
+		context.lineTo( -8, 8 );
+		context.lineTo( 12, 0 );
+
+		context.rotate( -a );
+		context.translate( -x, -y );
 	}
 
 	context.stroke();
