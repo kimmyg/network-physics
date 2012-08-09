@@ -33,6 +33,9 @@ function Simulation() {
 	};
 }
 
+Simulation.THRUST = 64; // a = f / m
+Simulation.OMEGA = 1;
+
 Simulation.prototype.add = function( x, y, vx, vy ) {
 	this.objects.push([ x, y, vx, vy ]);
 }
@@ -40,14 +43,25 @@ Simulation.prototype.add = function( x, y, vx, vy ) {
 Simulation.prototype.pass = function( t ) {
 	var dt = ( t - this.t0 ) / 1000;
 
-	var va = ( this.keys['37'] ? -1 : 0 ) + ( this.keys['39'] ? 1 : 0 );
+	var va = ( this.keys['37'] ? -Simulation.OMEGA : 0 ) + ( this.keys['39'] ? Simulation.OMEGA : 0 );
 
 	if( this.keys['38'] ) {
-		this.ship.x += this.ship.vx * dt - Math.cos( 1 * dt + this.ship.a ) / ( 1 * 1 );
-		this.ship.y += this.ship.vy * dt - Math.sin( 1 * dt + this.ship.a ) / ( 1 * 1 );
+		var sin_a = Math.sin( this.ship.a ), cos_a = Math.cos( this.ship.a ); 
+
+		if( va === 0 ) {
+			this.ship.x += this.ship.vx * dt + 0.5 * Simulation.THRUST * dt * dt * Math.cos( this.ship.a );
+			this.ship.y += this.ship.vy * dt + 0.5 * Simulation.THRUST * dt * dt * Math.sin( this.ship.a );
+
+			this.ship.vx += Simulation.THRUST * dt * Math.cos( this.ship.a );
+			this.ship.vy += Simulation.THRUST * dt * Math.sin( this.ship.a );
+		}
+		else {
+			this.ship.x += this.ship.vx * dt - ( Math.cos( this.ship.a ) - Math.cos( va * dt + this.ship.a ) ) * Simulation.THRUST / ( va * va );
+			this.ship.y += this.ship.vy * dt - ( Math.sin( this.ship.a ) - Math.sin( va * dt + this.ship.a ) ) * Simulation.THRUST / ( va * va );
 	
-		this.ship.vx += Math.sin( 1 * dt + this.ship.a ) / 1;
-		this.ship.vy -= Math.cos( 1 * dt + this.ship.a ) / 1;
+			this.ship.vx += ( Math.sin( va * dt + this.ship.a ) - Math.sin( this.ship.a ) ) * Simulation.THRUST / va;
+			this.ship.vy -= ( Math.cos( va * dt + this.ship.a ) - Math.cos( this.ship.a ) ) * Simulation.THRUST / va;
+		}
 	}
 	else {
 		this.ship.x += this.ship.vx * dt;
@@ -89,13 +103,13 @@ Simulation.prototype.update = function( t ) {
 			if( ! this.keys[ event.keyCode ] ) {
 				this.keys[ event.keyCode ] = true;
 
-				this.onKeyDown( event.keyCode );
+			//	this.onKeyDown( event.keyCode );
 			}
 		}
 		else if( event.type === 'keyup' ) {
 			delete this.keys[ event.keyCode ];
 
-			this.onKeyUp( event.keyCode );
+			//this.onKeyUp( event.keyCode );
 		}
 	}
 

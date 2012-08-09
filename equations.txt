@@ -1,0 +1,67 @@
+a_x = T * cos( a + ot )
+v_x = T * sin( a + ot ) / o - T * sin( a ) / o + v_0_x
+x_x = T * -cos( a + ot ) / ( o * o ) - T * sin( a ) * t / o + v_0_x * t + x_0_x
+
+a_y = sin( a + ot )
+v_y = -cos( a + ot ) / o + cos( a ) / o + v_0_y
+x_y = -sin( a + ot ) / ( o * o ) + t cos( a ) / o + v_0_y * t + x_0_y
+
+let a = 0, o = 1, v_0_x = 0, v_0_y = 0, x_0_x = 0, x_0_y = 0
+
+let o = 1 and m = 1 so f = 1*a, i.e., a=f
+
+a_x = T * cos( t )
+v_x = T * sin( t ) * t
+
+a_y = T * sin( t )
+v_y = T * -cos( t ) * t
+
+(the t factor is impulse)
+after pi seconds, we would expect
+
+v_x = 0
+v_y > 0
+
+which we get
+
+a_x = T * cos( t )
+v_x = T * sin( t ) * t
+
+a_y = T * sin( t )
+v_y = T * -cos( t ) * t
+
+according to this definition, the displacement is:
+
+a_x = T * cos( wt + a )
+v_x = T * sin( wt + a ) / w - T * sin( a ) / w
+x_x = T * -cos( wt + a ) / ww + T * cos( a ) / ww
+
+we need to follow the right-hand rule!?
+
+a_y = T * sin( wt + a )
+v_y = T * -cos( wt + a ) / w - T * -cos( a ) 
+x_y = T * -sin( wt + a ) / ww - T * -sin( a ) / ww
+
+
+
+
+
+while we get that for v_x, v_y is wrong. suppose we use this definition instead:
+
+a_x = T * cos( t )
+v_x = T * sin( t ) - T * sin( 0 ) = T * sin( t )
+
+a_y = T * sin( t )
+v_y = T * -cos( t ) - T * -cos( 0 ) = T - T * cos( t )
+
+then it works. also, 2 * pi seconds works
+
+according to this definition, the displacement is:
+
+a_x = T * cos( t )
+v_x = T * sin( t ) - T * sin( 0 ) = T * sin( t ) * t
+x_x = 
+
+a_y = T * sin( t )
+v_y = T * -cos( t ) - T * -cos( 0 ) = T - T * cos( t )
+
