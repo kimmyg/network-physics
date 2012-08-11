@@ -10,6 +10,9 @@ function $( id ) {
 canvas = null;
 context = null;
 
+WIDTH = null;
+HEIGHT = null;
+
 simulation = null;
 
 function Simulation() {
@@ -49,18 +52,18 @@ Simulation.prototype.pass = function( t ) {
 		var sin_a = Math.sin( this.ship.a ), cos_a = Math.cos( this.ship.a ); 
 
 		if( va === 0 ) {
-			this.ship.x += this.ship.vx * dt + 0.5 * Simulation.THRUST * dt * dt * Math.cos( this.ship.a );
-			this.ship.y += this.ship.vy * dt + 0.5 * Simulation.THRUST * dt * dt * Math.sin( this.ship.a );
+			this.ship.x += this.ship.vx * dt + 0.5 * Simulation.THRUST * dt * dt * cos_a;
+			this.ship.y += this.ship.vy * dt + 0.5 * Simulation.THRUST * dt * dt * sin_a;
 
-			this.ship.vx += Simulation.THRUST * dt * Math.cos( this.ship.a );
-			this.ship.vy += Simulation.THRUST * dt * Math.sin( this.ship.a );
+			this.ship.vx += Simulation.THRUST * dt * cos_a;
+			this.ship.vy += Simulation.THRUST * dt * sin_a;
 		}
 		else {
-			this.ship.x += this.ship.vx * dt - ( Math.cos( this.ship.a ) - Math.cos( va * dt + this.ship.a ) ) * Simulation.THRUST / ( va * va );
-			this.ship.y += this.ship.vy * dt - ( Math.sin( this.ship.a ) - Math.sin( va * dt + this.ship.a ) ) * Simulation.THRUST / ( va * va );
+			this.ship.x += ( cos_a - Math.cos( va * dt + this.ship.a ) ) * Simulation.THRUST / ( va * va ) - sin_a * Simulation.THRUST * dt / va + this.ship.vx * dt; 
+			this.ship.y += ( sin_a - Math.sin( va * dt + this.ship.a ) ) * Simulation.THRUST / ( va * va ) + cos_a * Simulation.THRUST * dt / va + this.ship.vy * dt;
 	
-			this.ship.vx += ( Math.sin( va * dt + this.ship.a ) - Math.sin( this.ship.a ) ) * Simulation.THRUST / va;
-			this.ship.vy -= ( Math.cos( va * dt + this.ship.a ) - Math.cos( this.ship.a ) ) * Simulation.THRUST / va;
+			this.ship.vx += ( Math.sin( va * dt + this.ship.a ) - sin_a ) * Simulation.THRUST / va;
+			this.ship.vy -= ( Math.cos( va * dt + this.ship.a ) - cos_a ) * Simulation.THRUST / va;
 		}
 	}
 	else {
@@ -68,24 +71,31 @@ Simulation.prototype.pass = function( t ) {
 		this.ship.y += this.ship.vy * dt;
 	}
 
+	this.ship.x = ( this.ship.x + WIDTH ) % WIDTH;
+	this.ship.y = ( this.ship.y + HEIGHT ) % HEIGHT;
+	
 	this.ship.a += va * dt;
 
 	for( var i = 0; i < this.objects.length; ++i ) {
 		var o = this.objects[i];
 
-		o[0] += o[2] * dt;
-		o[1] += o[3] * dt;
+		o[0] = ( o[0] + o[2] * dt + WIDTH ) % WIDTH;
+		o[1] = ( o[1] + o[3] * dt + HEIGHT ) % HEIGHT;
 	}
 
 	this.t0 = t;
 }
 
 Simulation.prototype.onKeyDown = function( code ) {
-	console.log( 'down ' + code );
+	//console.log( 'down ' + code );
+	
+	if( code === 32 ) {
+		this.add( this.ship.x, this.ship.y, this.ship.vx + 64 * Math.cos( this.ship.a ), this.ship.vy + 64 * Math.sin( this.ship.a ) );
+	}
 }
 
 Simulation.prototype.onKeyUp = function( code ) {
-	console.log( 'up   ' + code );
+	//console.log( 'up   ' + code );
 }
 
 Simulation.prototype.init = function( t ) {
@@ -103,7 +113,7 @@ Simulation.prototype.update = function( t ) {
 			if( ! this.keys[ event.keyCode ] ) {
 				this.keys[ event.keyCode ] = true;
 
-			//	this.onKeyDown( event.keyCode );
+				this.onKeyDown( event.keyCode );
 			}
 		}
 		else if( event.type === 'keyup' ) {
@@ -137,32 +147,16 @@ Simulation.prototype.paint = function( context ) {
 	for( var i = 0; i < this.objects.length; ++i ) {
 		var o = this.objects[i];
 
-		var x = ( o[0] + 0.5 ) | 0, y = ( o[1] + 0.5 ) | 0, a = ( ( ( o[2] * 16 / Math.PI + 0.5 ) | 0 ) % 32 ) * Math.PI / 16;
+		var x = ( o[0] + 0.5 ) | 0, y = ( o[1] + 0.5 ) | 0;
 
 		context.translate( x, y );
-		context.rotate( a );
 
-		context.moveTo( 12, 0 );
-		context.lineTo( -8, -8 );
-		context.lineTo( -8, 8 );
-		context.lineTo( 12, 0 );
+		context.moveTo( -1, -1 );
+		context.lineTo( -1, 1 );
+		context.lineTo( 1, 1 );
+		context.lineTo( 1, -1 );
+		context.lineTo( -1, -1 );
 
-		context.rotate( -a );
-		context.translate( -x, -y );
-
-		x = o[0];
-		y = o[1];
-		a = o[2];
-
-		context.translate( x, y );
-		context.rotate( a );
-
-		context.moveTo( 12, 0 );
-		context.lineTo( -8, -8 );
-		context.lineTo( -8, 8 );
-		context.lineTo( 12, 0 );
-
-		context.rotate( -a );
 		context.translate( -x, -y );
 	}
 
@@ -191,6 +185,9 @@ function update( t ) {
 window.onload = function( event ) {
 	canvas = $('canvas');
 	context = canvas.getContext('2d');
+	
+	WIDTH = canvas.width;
+	HEIGHT = canvas.height;
 
 	init( Date.now() );
 }
