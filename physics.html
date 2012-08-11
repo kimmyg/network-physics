@@ -81,6 +81,9 @@ Simulation.prototype.pass = function( t ) {
 
 		o[0] = ( o[0] + o[2] * dt + WIDTH ) % WIDTH;
 		o[1] = ( o[1] + o[3] * dt + HEIGHT ) % HEIGHT;
+		
+		o[2] *= 0.99;
+		o[3] *= 0.99;
 	}
 
 	this.t0 = t;
@@ -104,6 +107,8 @@ Simulation.prototype.init = function( t ) {
 
 
 Simulation.prototype.update = function( t ) {
+	//$('fps').innerText = 1000 / ( t - this.t0 );
+
 	while( this.events.length > 0 ) {
 		var event = this.events.shift();
 
@@ -195,7 +200,8 @@ window.onload = function( event ) {
 </head>
 
 <body>
-	<canvas id="canvas" width="360" height="360"/>
+	<canvas id="canvas" width="360" height="360"></canvas>
+	<span id="fps"></span>
 </body>
 
 </html>
