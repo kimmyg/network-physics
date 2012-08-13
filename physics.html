@@ -29,9 +29,22 @@ function Simulation() {
 
 	var self = this;
 
-	this.pushEvent = function( event ) {
+	this.onKeyEvent = function( event ) {
 		if( event.keyCode === 38 || true ) { // should do generic event filter
-			self.events.push( event );
+			self.handlePhysicsUntilTime( event.timeStamp );
+
+			if( event.type === 'keydown' ) {
+				if( ! self.keys[ event.keyCode ] ) {
+					self.keys[ event.keyCode ] = true;
+
+					self.onKeyDown( event.keyCode, event.timeStamp );
+				}
+			}
+			else if( event.type === 'keyup' ) {
+				delete self.keys[ event.keyCode ];
+
+				//self.onKeyUp( event.keyCode, event.timeStamp );
+			}
 		}
 	};
 }
@@ -40,8 +53,8 @@ Simulation.THRUST = 128; // a = f / m
 Simulation.OMEGA = 3;
 Simulation.PROJECTILE_VELOCITY = 256;
 
-Simulation.prototype.add = function( x, y, vx, vy ) {
-	this.objects.push([ x, y, vx, vy ]);
+Simulation.prototype.add = function( x, y, vx, vy, ttl ) {
+	this.objects.push([ x, y, vx, vy, ttl ]);
 }
 
 Simulation.prototype.pass = function( t ) {
@@ -90,15 +103,15 @@ Simulation.prototype.pass = function( t ) {
 	this.t0 = t;
 }
 
-Simulation.prototype.onKeyDown = function( code ) {
+Simulation.prototype.onKeyDown = function( code, timestamp ) {
 	//console.log( 'down ' + code );
 	
 	if( code === 32 ) {
-		this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ) );
+		this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ), timestamp + 2000 );
 	}
 }
 
-Simulation.prototype.onKeyUp = function( code ) {
+Simulation.prototype.onKeyUp = function( code, timestamp ) {
 	//console.log( 'up   ' + code );
 }
 
@@ -106,32 +119,19 @@ Simulation.prototype.init = function( t ) {
 	this.t0 = t;
 }
 
+Simulation.prototype.handlePhysicsUntilTime = function( t ) {
+	while( this.objects.length > 0 && this.objects[0][4] <= t ) {
+		this.pass( this.objects[0][4] );
 
-Simulation.prototype.update = function( t ) {
-	this.dt = ( t - this.t0 ) / 1000;
-
-	$('fps').innerText = 1 / this.dt;
-
-	while( this.events.length > 0 ) {
-		var event = this.events.shift();
-
-		this.pass( event.timeStamp );
-
-		if( event.type === 'keydown' ) {
-			if( ! this.keys[ event.keyCode ] ) {
-				this.keys[ event.keyCode ] = true;
-
-				this.onKeyDown( event.keyCode );
-			}
-		}
-		else if( event.type === 'keyup' ) {
-			delete this.keys[ event.keyCode ];
-
-			//this.onKeyUp( event.keyCode );
-		}
+		this.objects.shift();
 	}
 
 	this.pass( t );
+}
+
+
+Simulation.prototype.update = function( t ) {
+	this.handlePhysicsUntilTime( t );
 }
 
 Simulation.prototype.paint = function( context ) {
@@ -159,14 +159,11 @@ Simulation.prototype.paint = function( context ) {
 
 		context.translate( x, y );
 
-		context.moveTo( -o[2] * this.dt, -o[3] * this.dt );
-		context.lineTo( 0, 0 );
-
-		//context.moveTo( -1, -1 );
-		//context.lineTo( -1, 1 );
-		//context.lineTo( 1, 1 );
-		//context.lineTo( 1, -1 );
-		//context.lineTo( -1, -1 );
+		context.moveTo( -1, -1 );
+		context.lineTo( -1, 1 );
+		context.lineTo( 1, 1 );
+		context.lineTo( 1, -1 );
+		context.lineTo( -1, -1 );
 
 		context.translate( -x, -y );
 	}
@@ -177,8 +174,8 @@ Simulation.prototype.paint = function( context ) {
 function init( t ) {
 	simulation = new Simulation();
 
-	window.onkeydown = simulation.pushEvent;
-	window.onkeyup = simulation.pushEvent;
+	window.onkeydown = simulation.onKeyEvent;
+	window.onkeyup = simulation.onKeyEvent;
 
 	simulation.init( t );
 	simulation.paint( context );
