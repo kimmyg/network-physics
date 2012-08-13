@@ -36,8 +36,9 @@ function Simulation() {
 	};
 }
 
-Simulation.THRUST = 64; // a = f / m
-Simulation.OMEGA = 1;
+Simulation.THRUST = 128; // a = f / m
+Simulation.OMEGA = 3;
+Simulation.PROJECTILE_VELOCITY = 256;
 
 Simulation.prototype.add = function( x, y, vx, vy ) {
 	this.objects.push([ x, y, vx, vy ]);
@@ -82,8 +83,8 @@ Simulation.prototype.pass = function( t ) {
 		o[0] = ( o[0] + o[2] * dt + WIDTH ) % WIDTH;
 		o[1] = ( o[1] + o[3] * dt + HEIGHT ) % HEIGHT;
 		
-		o[2] *= 0.99;
-		o[3] *= 0.99;
+		//o[2] *= 0.99;
+		//o[3] *= 0.99;
 	}
 
 	this.t0 = t;
@@ -93,7 +94,7 @@ Simulation.prototype.onKeyDown = function( code ) {
 	//console.log( 'down ' + code );
 	
 	if( code === 32 ) {
-		this.add( this.ship.x, this.ship.y, this.ship.vx + 64 * Math.cos( this.ship.a ), this.ship.vy + 64 * Math.sin( this.ship.a ) );
+		this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ) );
 	}
 }
 
@@ -107,7 +108,9 @@ Simulation.prototype.init = function( t ) {
 
 
 Simulation.prototype.update = function( t ) {
-	//$('fps').innerText = 1000 / ( t - this.t0 );
+	this.dt = ( t - this.t0 ) / 1000;
+
+	$('fps').innerText = 1 / this.dt;
 
 	while( this.events.length > 0 ) {
 		var event = this.events.shift();
@@ -156,11 +159,14 @@ Simulation.prototype.paint = function( context ) {
 
 		context.translate( x, y );
 
-		context.moveTo( -1, -1 );
-		context.lineTo( -1, 1 );
-		context.lineTo( 1, 1 );
-		context.lineTo( 1, -1 );
-		context.lineTo( -1, -1 );
+		context.moveTo( -o[2] * this.dt, -o[3] * this.dt );
+		context.lineTo( 0, 0 );
+
+		//context.moveTo( -1, -1 );
+		//context.lineTo( -1, 1 );
+		//context.lineTo( 1, 1 );
+		//context.lineTo( 1, -1 );
+		//context.lineTo( -1, -1 );
 
 		context.translate( -x, -y );
 	}
