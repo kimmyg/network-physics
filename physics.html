@@ -33,8 +33,8 @@ Cannon.prototype.fire = function( timestamp ) {
 	}
 }
 
-function RepeatingEvent( f, t0, update ) {
-	this.f;
+function RepeatingEvent( event, t0, update ) {
+	this.event = event;
 	this.update = update;
 	
 	this.t0 = t0;
@@ -54,17 +54,56 @@ function Queue() { // merge
 	this.queues = {};
 }
 
+Queue.NULL_EVENT = function( t0 ) {};
+
 Queue.prototype.min = function() {
-	// min and cache	
+	if( ! this.min_queue ) {
+		for( var key in this.queues ) {
+			if( this.queues.hasOwnProperty( key ) ) {
+				if( this.min_queue ) {
+					if( this.queues[ key ].min() < this.min_queue.min() ) {
+						this.min_queue = this.queues[ key ];
+					}
+				}
+				else {
+					this.min_queue = this.queues[ key ];
+				}
+			}
+		}
+	}
+
+	if( this.min_queue ) {
+		return this.min_queue.min();
+	}
+	else {
+		return Infinity;
+	}
 }
 
 Queue.prototype.pop = function() {
+	if( this.min_queue ) {
+		var event = this.min_queue.pop();
 
+		delete this.min_queue;
+
+		return event;
+	}
+	else {
+		return Queue.NULL_EVENT;
+	}
 }
 
-Queue.prototype.schedule // add event at specific time (or make generic queue and add it)
+Queue.prototype.add = function( queue, key ) {
+	this.queues[ key ] = queue;
+	
+	delete this.min_queue;
+}
 
-// add queue with key
+Queue.prototype.remove = function( key ) {
+	delete this.queues[ key ];
+
+	delete this.min_queue;
+}
 
 function Simulation() {
 	this.objects = [];
@@ -180,11 +219,13 @@ Simulation.prototype.handlePhysicsUntilTime = function( t ) {
 	var t0 = this.queue.min();
 
 	while( t0 <= t ) {
-		var f = this.events.pop();
+		var f = this.queue.pop();
 		
 		this.pass( t0 );
 		
 		f( t0 );
+
+		t0 = this.queue.min();
 	}
 
 	/*while( this.objects.length > 0 && this.objects[0][4] <= t ) {
