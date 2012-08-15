@@ -15,24 +15,6 @@ HEIGHT = null;
 
 simulation = null;
 
-function Cannon() {
-}
-
-Cannon.COOLDOWN = 500;
-
-// make as long as spacebar is held down, a fire event is scheduled
-
-Cannon.prototype.fire = function( timestamp ) {
-	if( timestamp < this.expiration ) {
-		return false;
-	}
-	else {
-		this.expiration = timestamp + Cannon.COOLDOWN;
-		
-		return true;
-	}
-}
-
 function RepeatingEvent( event, t0, update ) {
 	this.event = event;
 	this.update = update;
@@ -105,7 +87,39 @@ Queue.prototype.remove = function( key ) {
 	delete this.min_queue;
 }
 
+function Cannon() {
+	//this.on_fire = function
+}
+
+Cannon.COOLDOWN = 500;
+
+// make as long as spacebar is held down, a fire event is scheduled
+
+Cannon.prototype.fire = function( timestamp ) {
+	if( this.expiration ) {
+		if( this.expiration < timestamp ) {
+			
+
+		}
+	}
+	else {
+
+	}
+	if( timestamp < this.expiration ) {
+		return false;
+	}
+	else {
+		this.expiration = timestamp + Cannon.COOLDOWN;
+		
+		return true;
+	}
+}
+
+Cannon.prototype.min = function
+
 function Simulation() {
+	var self = this;
+
 	this.objects = [];
 	this.keys = {};
 	this.queue = new Queue();
@@ -115,7 +129,10 @@ function Simulation() {
 		vx: 0,
 		vy: 0,
 		a: 0,
-		cannon: new Cannon()
+		cannon: new Cannon(function( t0 ) {
+			self.add(  );
+			this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ), timestamp + 2000 );
+		})
 	};
 
 	var self = this;
@@ -134,7 +151,7 @@ function Simulation() {
 			else if( event.type === 'keyup' ) {
 				delete self.keys[ event.keyCode ];
 
-				//self.onKeyUp( event.keyCode, event.timeStamp );
+				self.onKeyUp( event.keyCode, event.timeStamp );
 			}
 		}
 	};
@@ -144,8 +161,8 @@ Simulation.THRUST = 128; // a = f / m
 Simulation.OMEGA = 3;
 Simulation.PROJECTILE_VELOCITY = 256;
 
-Simulation.prototype.add = function( x, y, vx, vy, ttl ) {
-	this.objects.push([ x, y, vx, vy, ttl ]);
+Simulation.prototype.add = function( x, y, vx, vy ) {
+	this.objects.push([ x, y, vx, vy ]);
 }
 
 Simulation.prototype.pass = function( t ) {
@@ -186,9 +203,6 @@ Simulation.prototype.pass = function( t ) {
 
 		o[0] = ( o[0] + o[2] * dt + WIDTH ) % WIDTH;
 		o[1] = ( o[1] + o[3] * dt + HEIGHT ) % HEIGHT;
-		
-		//o[2] *= 0.99;
-		//o[3] *= 0.99;
 	}
 
 	this.t0 = t;
@@ -198,6 +212,9 @@ Simulation.prototype.onKeyDown = function( code, timestamp ) {
 	//console.log( 'down ' + code );
 	
 	if( code === 32 ) {
+		this.queue.add( this.ship.cannon, 'cannon' );
+	}
+
 		this.queue.add( new RepEvent(this.ship.cannon.fire /* I know */, first chance, cooldown), f-c.)
 		// cannon should have queue
 	
@@ -215,7 +232,7 @@ Simulation.prototype.init = function( t ) {
 	this.t0 = t;
 }
 
-Simulation.prototype.handlePhysicsUntilTime = function( t ) {
+Simulation.prototype.update = function( t ) {
 	var t0 = this.queue.min();
 
 	while( t0 <= t ) {
@@ -228,18 +245,7 @@ Simulation.prototype.handlePhysicsUntilTime = function( t ) {
 		t0 = this.queue.min();
 	}
 
-	/*while( this.objects.length > 0 && this.objects[0][4] <= t ) {
-		this.pass( this.objects[0][4] );
-
-		this.objects.shift();
-	}*/
-
 	this.pass( t );
-}
-
-
-Simulation.prototype.update = function( t ) {
-	this.handlePhysicsUntilTime( t );
 }
 
 Simulation.prototype.paint = function( context ) {
