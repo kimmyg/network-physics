@@ -15,16 +15,68 @@ HEIGHT = null;
 
 simulation = null;
 
+function Cannon() {
+}
+
+Cannon.COOLDOWN = 500;
+
+// make as long as spacebar is held down, a fire event is scheduled
+
+Cannon.prototype.fire = function( timestamp ) {
+	if( timestamp < this.expiration ) {
+		return false;
+	}
+	else {
+		this.expiration = timestamp + Cannon.COOLDOWN;
+		
+		return true;
+	}
+}
+
+function RepeatingEvent( f, t0, update ) {
+	this.f;
+	this.update = update;
+	
+	this.t0 = t0;
+}
+
+RepeatingEvent.prototype.min = function() {
+	return this.t0;
+}
+
+RepeatingEvent.prototype.pop = function() {
+	this.t0 = this.update( this.t0 );
+	
+	return this.f;
+}
+
+function Queue() { // merge
+	this.queues = {};
+}
+
+Queue.prototype.min = function() {
+	// min and cache	
+}
+
+Queue.prototype.pop = function() {
+
+}
+
+Queue.prototype.schedule // add event at specific time (or make generic queue and add it)
+
+// add queue with key
+
 function Simulation() {
 	this.objects = [];
-	this.events = [];
 	this.keys = {};
+	this.queue = new Queue();
 	this.ship = {
 		x: 180,
 		y: 180,
 		vx: 0,
 		vy: 0,
-		a: 0
+		a: 0,
+		cannon: new Cannon()
 	};
 
 	var self = this;
@@ -107,7 +159,12 @@ Simulation.prototype.onKeyDown = function( code, timestamp ) {
 	//console.log( 'down ' + code );
 	
 	if( code === 32 ) {
-		this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ), timestamp + 2000 );
+		this.queue.add( new RepEvent(this.ship.cannon.fire /* I know */, first chance, cooldown), f-c.)
+		// cannon should have queue
+	
+		if( this.ship.cannon.fire( timestamp ) ) { // make interface better; maybe we tell the ship to fire? also, maybe it returns a projectile? make ship peer with other objects
+			this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ), timestamp + 2000 );
+		}
 	}
 }
 
@@ -120,11 +177,21 @@ Simulation.prototype.init = function( t ) {
 }
 
 Simulation.prototype.handlePhysicsUntilTime = function( t ) {
-	while( this.objects.length > 0 && this.objects[0][4] <= t ) {
+	var t0 = this.queue.min();
+
+	while( t0 <= t ) {
+		var f = this.events.pop();
+		
+		this.pass( t0 );
+		
+		f( t0 );
+	}
+
+	/*while( this.objects.length > 0 && this.objects[0][4] <= t ) {
 		this.pass( this.objects[0][4] );
 
 		this.objects.shift();
-	}
+	}*/
 
 	this.pass( t );
 }
