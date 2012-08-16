@@ -15,24 +15,31 @@ HEIGHT = null;
 
 simulation = null;
 
-function RepeatingEvent( event, t0, update ) {
+function RepeatingEvent( event ) {
 	this.event = event;
-	this.update = update;
-	
-	this.t0 = t0;
+	this.queue = [];
 }
 
 RepeatingEvent.prototype.min = function() {
-	return this.t0;
+	if( this.queue.length > 0 ) {
+		return this.queue[0];
+	}
+	else {
+		return Infinity;
+	}
 }
 
 RepeatingEvent.prototype.pop = function() {
-	this.t0 = this.update( this.t0 );
+	this.queue.shift();
 	
-	return this.f;
+	return this.event;
 }
 
-function Queue() { // merge
+RepeatingEvent.prototype.push = function( t ) {
+	this.queue.push( t );
+}
+
+function Queue() { // relies on and then preserves property that no min changes before pop for all kids
 	this.queues = {};
 }
 
@@ -87,59 +94,57 @@ Queue.prototype.remove = function( key ) {
 	delete this.min_queue;
 }
 
-function Cannon() {
-	//this.on_fire = function
+function Cannon( onFire ) {
+	this.onFire = onFire;
 }
 
-Cannon.COOLDOWN = 500;
+Cannon.COOLDOWN = 50;
 
-// make as long as spacebar is held down, a fire event is scheduled
-
-Cannon.prototype.fire = function( timestamp ) {
+Cannon.prototype.fire = function( t0 ) {
 	if( this.expiration ) {
-		if( this.expiration < timestamp ) {
-			
-
-		}
+		this.expiration = Math.max( this.expiration, t0 );
 	}
 	else {
-
-	}
-	if( timestamp < this.expiration ) {
-		return false;
-	}
-	else {
-		this.expiration = timestamp + Cannon.COOLDOWN;
-		
-		return true;
+		this.expiration = t0;
 	}
 }
 
-Cannon.prototype.min = function
+Cannon.prototype.min = function() {
+	return ( this.expiration || Infinity );
+}
+
+Cannon.prototype.pop = function() {
+	this.expiration = this.expiration + Cannon.COOLDOWN;
+
+	return this.onFire;
+}
 
 function Simulation() {
 	var self = this;
 
 	this.objects = [];
+	this.expirations = new RepeatingEvent( function( t0 ) {
+		self.objects.shift();
+	});
 	this.keys = {};
 	this.queue = new Queue();
+	
+	this.queue.add( this.expirations, 'projectiles' );
+
 	this.ship = {
 		x: 180,
 		y: 180,
 		vx: 0,
 		vy: 0,
 		a: 0,
-		cannon: new Cannon(function( t0 ) {
-			self.add(  );
-			this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ), timestamp + 2000 );
+		cannon: new Cannon( function( t0 ) {
+			self.add( self.ship.x, self.ship.y, self.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( self.ship.a ), self.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( self.ship.a ), t0 + 2000 );
 		})
 	};
 
-	var self = this;
-
 	this.onKeyEvent = function( event ) {
 		if( event.keyCode === 38 || true ) { // should do generic event filter
-			self.handlePhysicsUntilTime( event.timeStamp );
+			self.update( event.timeStamp );
 
 			if( event.type === 'keydown' ) {
 				if( ! self.keys[ event.keyCode ] ) {
@@ -161,8 +166,9 @@ Simulation.THRUST = 128; // a = f / m
 Simulation.OMEGA = 3;
 Simulation.PROJECTILE_VELOCITY = 256;
 
-Simulation.prototype.add = function( x, y, vx, vy ) {
+Simulation.prototype.add = function( x, y, vx, vy, expiration ) {
 	this.objects.push([ x, y, vx, vy ]);
+	this.expirations.push( expiration );
 }
 
 Simulation.prototype.pass = function( t ) {
@@ -212,20 +218,17 @@ Simulation.prototype.onKeyDown = function( code, timestamp ) {
 	//console.log( 'down ' + code );
 	
 	if( code === 32 ) {
+		this.ship.cannon.fire( timestamp );
 		this.queue.add( this.ship.cannon, 'cannon' );
-	}
-
-		this.queue.add( new RepEvent(this.ship.cannon.fire /* I know */, first chance, cooldown), f-c.)
-		// cannon should have queue
-	
-		if( this.ship.cannon.fire( timestamp ) ) { // make interface better; maybe we tell the ship to fire? also, maybe it returns a projectile? make ship peer with other objects
-			this.add( this.ship.x, this.ship.y, this.ship.vx + Simulation.PROJECTILE_VELOCITY * Math.cos( this.ship.a ), this.ship.vy + Simulation.PROJECTILE_VELOCITY * Math.sin( this.ship.a ), timestamp + 2000 );
-		}
 	}
 }
 
 Simulation.prototype.onKeyUp = function( code, timestamp ) {
 	//console.log( 'up   ' + code );
+
+	if( code === 32 ) {
+		this.queue.remove( 'cannon' );
+	}
 }
 
 Simulation.prototype.init = function( t ) {
